@@ -1,0 +1,86 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Music Playlist</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <h1>⬇ Download Playlist - Cloud</h1>
+      <button id="downloadAll">Download All Songs</button>
+      <div id="playlist"></div>
+    </div>
+
+    <script>
+      let songList = [];
+
+      fetch("/api/songs")
+        .then((res) => res.json())
+        .then((songs) => {
+          songList = songs;
+          const playlist = document.getElementById("playlist");
+          songs.forEach((song) => {
+            const container = document.createElement("div");
+            container.className = "song-row";
+
+            const title = song.replace(/\.[^/.]+$/, "");
+            const titleElem = document.createElement("div");
+            titleElem.className = "song-title";
+            titleElem.textContent = "🎧 " + title;
+
+            const audio = document.createElement("audio");
+            audio.controls = true;
+            audio.src = `audio/${song}`;
+
+            const downloadLink = document.createElement("a");
+            downloadLink.href = `audio/${song}`;
+            downloadLink.download = song;
+            downloadLink.className = "download-btn";
+            downloadLink.textContent = "⬇";
+
+            container.appendChild(titleElem);
+            container.appendChild(audio);
+            container.appendChild(downloadLink);
+            playlist.appendChild(container);
+          });
+        });
+
+      document.getElementById("downloadAll").addEventListener("click", () => {
+        if (songList.length === 0) return;
+
+        const zip = new JSZip();
+        const folder = zip.folder("songs");
+        let completed = 0;
+
+        songList.forEach((song) => {
+          fetch(`audio/${song}`)
+            .then((res) => res.blob())
+            .then((blob) => {
+              folder.file(song, blob);
+              completed++;
+              if (completed === songList.length) {
+                zip.generateAsync({ type: "blob" }).then((content) => {
+                  saveAs(content, "All_Songs.zip");
+                });
+              }
+            });
+        });
+      });
+
+      // Klik animasi ringan
+      document.querySelectorAll('button, .download-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          btn.style.transform = 'scale(0.95)';
+          setTimeout(() => {
+            btn.style.transform = '';
+          }, 100);
+        });
+      });
+    </script>
+  </body>
+</html>
